@@ -2,7 +2,6 @@ import Combine
 import SwiftUI
 import CasePaths
 
-@available(iOS 13.0, *)
 public struct Effect<Output>: Publisher {
   public typealias Failure = Never
   
@@ -15,17 +14,14 @@ public struct Effect<Output>: Publisher {
   }
 }
 
-@available(iOS 13.0, *)
 extension Publisher where Failure == Never {
   public func eraseToEffect() -> Effect<Output> {
     return Effect(publisher: self.eraseToAnyPublisher())
   }
 }
 
-@available(iOS 13.0, *)
 public typealias Reducer<Value, Action> = (inout Value, Action) -> [Effect<Action>]
 
-@available(iOS 13.0, *)
 public final class Store<Value, Action>: ObservableObject {
   private let reducer: Reducer<Value, Action>
   @Published public private(set) var value: Value
@@ -75,7 +71,6 @@ public final class Store<Value, Action>: ObservableObject {
   }
 }
 
-@available(iOS 13.0, *)
 public func combine<Value, Action>(
   _ reducers: Reducer<Value, Action>...
 ) -> Reducer<Value, Action> {
@@ -85,7 +80,6 @@ public func combine<Value, Action>(
   }
 }
 
-@available(iOS 13.0, *)
 public func pullback<LocalValue, GlobalValue, LocalAction, GlobalAction>(
   _ reducer: @escaping Reducer<LocalValue, LocalAction>,
   value: WritableKeyPath<GlobalValue, LocalValue>,
@@ -102,7 +96,6 @@ public func pullback<LocalValue, GlobalValue, LocalAction, GlobalAction>(
   }
 }
 
-@available(iOS 13.0, *)
 public func logging<Value, Action>(
   _ reducer: @escaping Reducer<Value, Action>
 ) -> Reducer<Value, Action> {
@@ -118,7 +111,6 @@ public func logging<Value, Action>(
   }
 }
 
-@available(iOS 13.0, *)
 extension Effect {
   public static func fireAndForget(work: @escaping () -> Void) -> Effect {
     return Deferred { () -> Empty<Output, Never> in
