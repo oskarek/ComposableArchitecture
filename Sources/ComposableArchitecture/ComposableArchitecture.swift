@@ -62,18 +62,19 @@ public final class Store<Value, Action, Environment>: ObservableObject {
     }
   }
   
-  public func view<LocalValue, LocalAction>(
+  public func view<LocalValue, LocalAction, LocalEnvironment>(
     value toLocalValue: @escaping (Value) -> LocalValue,
-    action toGlobalAction: @escaping (LocalAction) -> Action
-  ) -> Store<LocalValue, LocalAction, Environment> {
-    let localStore = Store<LocalValue, LocalAction, Environment>(
+    action toGlobalAction: @escaping (LocalAction) -> Action,
+    environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+  ) -> Store<LocalValue, LocalAction, LocalEnvironment> {
+    let localStore = Store<LocalValue, LocalAction, LocalEnvironment>(
       initialValue: toLocalValue(self.value),
-      reducer: Reducer { localValue, localAction, environment in
+      reducer: Reducer { localValue, localAction, localEnvironment in
         self.send(toGlobalAction(localAction))
         localValue = toLocalValue(self.value)
         return .none
       },
-      environment: self.environment
+      environment: toLocalEnvironment(self.environment)
     )
     localStore.viewCancellable = self.$value.sink { [weak localStore] newValue in
       localStore?.value = toLocalValue(newValue)
@@ -91,14 +92,15 @@ public func combine<Value, Action, Environment>(
   }
 }
 
-public func pullback<LocalValue, GlobalValue, LocalAction, GlobalAction, Environment>(
-  _ reducer: Reducer<LocalValue, LocalAction, Environment>,
+public func pullback<LocalValue, GlobalValue, LocalAction, GlobalAction, LocalEnvironment, GlobalEnvironment>(
+  _ reducer: Reducer<LocalValue, LocalAction, LocalEnvironment>,
   value: WritableKeyPath<GlobalValue, LocalValue>,
-  action: CasePath<GlobalAction, LocalAction>
-) -> Reducer<GlobalValue, GlobalAction, Environment> {
-  return Reducer { globalValue, globalAction, environment in
+  action: CasePath<GlobalAction, LocalAction>,
+  environment: KeyPath<GlobalEnvironment, LocalEnvironment>
+) -> Reducer<GlobalValue, GlobalAction, GlobalEnvironment> {
+  return Reducer { globalValue, globalAction, globalEnvironment in
     guard let localAction = action.extract(from: globalAction) else { return .none }
-    let localEffect = reducer.run(&globalValue[keyPath: value], localAction, environment)
+    let localEffect = reducer.run(&globalValue[keyPath: value], localAction, globalEnvironment[keyPath:  environment])
     
     return localEffect.map(action.embed)
       .eraseToEffect()
