@@ -28,25 +28,25 @@ public struct Reducer<Value, Action, Environment> {
   }
 }
 
-public final class Store<Value, Action, Environment>: ObservableObject {
-  private let environment: Environment
-  private let reducer: Reducer<Value, Action, Environment>
+public final class Store<Value, Action>: ObservableObject {
+  private let reducer: (inout Value, Action) -> Effect<Action>
   @Published public private(set) var value: Value
   private var viewCancellable: Cancellable?
   private var effectCancellables: Set<AnyCancellable> = []
   
-  public init(
+  public init<Environment>(
     initialValue: Value,
     reducer: Reducer<Value, Action, Environment>,
     environment: Environment
   ) {
-    self.reducer = reducer
+    self.reducer = { value, action -> Effect<Action> in
+      reducer.run(&value, action, environment)
+    }
     self.value = initialValue
-    self.environment = environment
   }
 
   public func send(_ action: Action) {
-    let effect = self.reducer.run(&self.value, action, self.environment)
+    let effect = self.reducer(&self.value, action)
     var effectCancellable: AnyCancellable?
     var didComplete = false
     effectCancellable = effect.sink(
@@ -62,19 +62,18 @@ public final class Store<Value, Action, Environment>: ObservableObject {
     }
   }
   
-  public func view<LocalValue, LocalAction, LocalEnvironment>(
+  public func view<LocalValue, LocalAction>(
     value toLocalValue: @escaping (Value) -> LocalValue,
-    action toGlobalAction: @escaping (LocalAction) -> Action,
-    environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
-  ) -> Store<LocalValue, LocalAction, LocalEnvironment> {
-    let localStore = Store<LocalValue, LocalAction, LocalEnvironment>(
+    action toGlobalAction: @escaping (LocalAction) -> Action
+  ) -> Store<LocalValue, LocalAction> {
+    let localStore = Store<LocalValue, LocalAction>(
       initialValue: toLocalValue(self.value),
       reducer: Reducer { localValue, localAction, localEnvironment in
         self.send(toGlobalAction(localAction))
         localValue = toLocalValue(self.value)
         return .none
       },
-      environment: toLocalEnvironment(self.environment)
+      environment: ()
     )
     localStore.viewCancellable = self.$value.sink { [weak localStore] newValue in
       localStore?.value = toLocalValue(newValue)
