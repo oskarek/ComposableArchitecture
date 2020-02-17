@@ -35,18 +35,24 @@ extension Reducer {
     }
   }
 
-  /// Create a reducer that logs each action dispatch and its resulting state
+  /// Create a reducer that logs each action dispatch and its resulting state,
+  /// using the provided show and logger functions.
   public static func logging(
-    _ reducer: Reducer<Value, Action, Environment>
+    _ reducer: Reducer<Value, Action, Environment>,
+    showAction: @escaping (Action) -> String = String.init(describing:),
+    showValue: @escaping (Value) -> String = { var s = ""; dump($0, to: &s); return s },
+    logger: @escaping (Environment) -> (String) -> Void = { _ in { s in print(s) } }
   ) -> Reducer<Value, Action, Environment> {
     return Reducer { value, action, environment in
       let effect = reducer.run(&value, action, environment)
       let newValue = value
       return .concat([
         .fireAndForget {
-          print("Action: \(action)")
+          let print = logger(environment)
+          print("Action:")
+          print(showAction(action))
           print("Value:")
-          dump(newValue)
+          print(showValue(newValue))
           print("---")
         },
         effect
