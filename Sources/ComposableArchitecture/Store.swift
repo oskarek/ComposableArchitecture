@@ -14,7 +14,7 @@ public final class Store<Value, Action>: ObservableObject {
     environment: Environment
   ) {
     self.reducer = { value, action -> Effect<Action> in
-      reducer.run(&value, action, environment)
+      reducer.run(&value, action)(environment)
     }
     self.value = initialValue
   }
@@ -44,10 +44,10 @@ public final class Store<Value, Action>: ObservableObject {
   ) -> Store<LocalValue, LocalAction> {
     let localStore = Store<LocalValue, LocalAction>(
       initialValue: toLocalValue(self.value),
-      reducer: Reducer { localValue, localAction, _ in
+      reducer: Reducer { localValue, localAction in
         self.send(toGlobalAction(localAction))
         localValue = toLocalValue(self.value)
-        return .none
+        return { _ in .none }
       },
       environment: ()
     )
