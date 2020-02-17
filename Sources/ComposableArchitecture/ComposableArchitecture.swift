@@ -82,45 +82,46 @@ public final class Store<Value, Action>: ObservableObject {
   }
 }
 
-public func combine<Value, Action, Environment>(
-  _ reducers: Reducer<Value, Action, Environment>...
-) -> Reducer<Value, Action, Environment> {
-  return Reducer { value, action, environment in
-    let effects = reducers.map { $0.run(&value, action, environment) }
-    return .concat(effects)
+extension Reducer {
+  public static func combine(
+    _ reducers: Reducer<Value, Action, Environment>...
+  ) -> Reducer<Value, Action, Environment> {
+    Reducer { value, action, environment in
+      let effects = reducers.map { $0.run(&value, action, environment) }
+      return .concat(effects)
+    }
   }
-}
 
-public func pullback<LocalValue, GlobalValue, LocalAction, GlobalAction, LocalEnvironment, GlobalEnvironment>(
-  _ reducer: Reducer<LocalValue, LocalAction, LocalEnvironment>,
-  value: WritableKeyPath<GlobalValue, LocalValue>,
-  action: CasePath<GlobalAction, LocalAction>,
-  environment: KeyPath<GlobalEnvironment, LocalEnvironment>
-) -> Reducer<GlobalValue, GlobalAction, GlobalEnvironment> {
-  return Reducer { globalValue, globalAction, globalEnvironment in
-    guard let localAction = action.extract(from: globalAction) else { return .none }
-    let localEffect = reducer.run(&globalValue[keyPath: value], localAction, globalEnvironment[keyPath:  environment])
-    
-    return localEffect.map(action.embed)
-      .eraseToEffect()
+  public func pullback<GlobalValue, GlobalAction, GlobalEnvironment>(
+    value: WritableKeyPath<GlobalValue, Value>,
+    action: CasePath<GlobalAction, Action>,
+    environment: KeyPath<GlobalEnvironment, Environment>
+  ) -> Reducer<GlobalValue, GlobalAction, GlobalEnvironment> {
+    .init { globalValue, globalAction, globalEnvironment in
+      guard let localAction = action.extract(from: globalAction) else { return .none }
+      let localEffect = self.run(&globalValue[keyPath: value], localAction, globalEnvironment[keyPath:  environment])
+
+      return localEffect.map(action.embed)
+        .eraseToEffect()
+    }
   }
-}
 
-public func logging<Value, Action, Environment>(
-  _ reducer: Reducer<Value, Action, Environment>
-) -> Reducer<Value, Action, Environment> {
-  return Reducer { value, action, environment in
-    let effect = reducer.run(&value, action, environment)
-    let newValue = value
-    return .concat([
-      .fireAndForget {
-        print("Action: \(action)")
-        print("Value:")
-        dump(newValue)
-        print("---")
-      },
-      effect
-    ])
+  public static func logging(
+    _ reducer: Reducer<Value, Action, Environment>
+  ) -> Reducer<Value, Action, Environment> {
+    return Reducer { value, action, environment in
+      let effect = reducer.run(&value, action, environment)
+      let newValue = value
+      return .concat([
+        .fireAndForget {
+          print("Action: \(action)")
+          print("Value:")
+          dump(newValue)
+          print("---")
+        },
+        effect
+      ])
+    }
   }
 }
 
