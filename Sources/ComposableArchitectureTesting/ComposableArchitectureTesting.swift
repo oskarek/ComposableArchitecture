@@ -7,6 +7,10 @@ enum StepType {
   case receive
 }
 
+/// A step can be of the two types `send` and `receive`.
+/// `send` steps represents the actions taken by the user,
+/// and `receive` steps represents the actions expected to be returned
+/// as a result of the sent action.
 public struct Step<Value, Action> {
   let type: StepType
   let action: Action
@@ -65,6 +69,17 @@ func runEffect<Value, Action>(_ effect: Effect<Action>, at step: Step<Value, Act
   return actions
 }
 
+/// Assert on what happens when running a set of action on a reducer,
+/// both how it affects the state but also what actions are sent back.
+/// - Parameters:
+///   - initialValue: The initial value of the state
+///   - environment: The environment to run the reducer in
+///   - reducer: The reducer to be tested
+///   - steps: The set of steps to perform
+///   - file: The file in which failure occurred. Defaults to the file name of
+///   the test case in which this function was called.
+///   - line: The line number on which failure occurred. Defaults to the line
+///   number on which this function was called.
 public func assert<Value: Equatable, Action: Equatable, Environment>(
   initialValue: Value,
   environment: Environment,
