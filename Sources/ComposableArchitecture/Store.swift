@@ -2,6 +2,7 @@ import Combine
 
 /// The place where the state is kept and actions are sent which cause
 /// the reducer to be run.
+@dynamicMemberLookup
 public final class Store<Value, Action>: ObservableObject {
   private let reducer: (inout Value, Action) -> Effect<Action>
   @Published public private(set) var value: Value
@@ -17,6 +18,10 @@ public final class Store<Value, Action>: ObservableObject {
       reducer.run(&value, action)(environment)
     }
     self.value = initialValue
+  }
+
+  public subscript<T>(dynamicMember keyPath: KeyPath<Value, T>) -> T {
+    return self.value[keyPath: keyPath]
   }
 
   /// Send an action to the store, which will trigger the store's reducer to run
