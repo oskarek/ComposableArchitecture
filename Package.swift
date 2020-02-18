@@ -10,6 +10,9 @@ let package = Package(
         .library(
             name: "ComposableArchitecture",
             targets: ["ComposableArchitecture"]),
+        .library(
+            name: "ComposableArchitectureTesting",
+            targets: ["ComposableArchitectureTesting"])
     ],
     dependencies: [
       .package(
@@ -21,6 +24,9 @@ let package = Package(
         .target(
             name: "ComposableArchitecture",
             dependencies: ["CasePaths"]),
+        .target(
+            name: "ComposableArchitectureTesting",
+            dependencies: ["ComposableArchitecture"]),
         .testTarget(
             name: "ComposableArchitectureTests",
             dependencies: ["ComposableArchitecture"]),
