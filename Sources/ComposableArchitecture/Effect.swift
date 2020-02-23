@@ -34,6 +34,11 @@ extension Effect {
     return fireAndForget { }
   }
 
+  /// Perform no effects and just return an element
+  public static func pure(_ a: Output) -> Effect {
+    return .sync { a }
+  }
+
   /// Perform a number of effects in succession
   public static func concat(_ effects: [Effect]) -> Effect {
     guard let fst = effects.first else { return .none }
